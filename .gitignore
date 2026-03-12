@@ -1,0 +1,17 @@
+﻿# Python
+__pycache__/
+*.pyc
+venv/
+.env
+*.db
+
+# Frontend
+node_modules/
+build/
+package-lock.json
+
+# Project specific
+audio/
+*.mp3
+*.wav
+uploads/
