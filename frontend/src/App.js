@@ -1,117 +1,233 @@
 import React, { useState, useEffect } from 'react';
 
-// Language data with native names
-const INDIAN_LANGUAGES = [
-  { code: 'as', name: 'Assamese', native: 'অসমীয়া' },
-  { code: 'bn', name: 'Bengali', native: 'বাংলা' },
-  { code: 'brx', name: 'Bodo', native: 'बर' },
-  { code: 'doi', name: 'Dogri', native: 'डोगरी' },
-  { code: 'en', name: 'English', native: 'English' },
-  { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી' },
-  { code: 'hi', name: 'Hindi', native: 'हिन्दी' },
-  { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ' },
-  { code: 'ks', name: 'Kashmiri', native: 'कॉशुर' },
-  { code: 'kok', name: 'Konkani', native: 'कोंकणी' },
-  { code: 'mai', name: 'Maithili', native: 'मैथिली' },
-  { code: 'ml', name: 'Malayalam', native: 'മലയാളം' },
-  { code: 'mni', name: 'Manipuri', native: 'মৈতৈলোন্' },
-  { code: 'mr', name: 'Marathi', native: 'मराठी' },
-  { code: 'ne', name: 'Nepali', native: 'नेपाली' },
-  { code: 'or', name: 'Odia', native: 'ଓଡ଼ିଆ' },
-  { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ' },
-  { code: 'sa', name: 'Sanskrit', native: 'संस्कृतम्' },
-  { code: 'sat', name: 'Santali', native: 'ᱥᱟᱱᱛᱟᱲᱤ' },
-  { code: 'sd', name: 'Sindhi', native: 'سنڌي' },
-  { code: 'ta', name: 'Tamil', native: 'தமிழ்' },
-  { code: 'te', name: 'Telugu', native: 'తెలుగు' },
-  { code: 'ur', name: 'Urdu', native: 'اردو' }
-];
+// ==================== STYLED COMPONENTS ====================
 
-// API Service
-const API = {
-  async chat(query, language) {
-    const res = await fetch('http://localhost:8000/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, language })
-    });
-    return res.json();
+const styles = {
+  // Modern color palette
+  colors: {
+    primary: '#3B82F6',      // Bright blue
+    secondary: '#10B981',    // Emerald green
+    accent: '#8B5CF6',       // Purple
+    danger: '#EF4444',       // Red
+    warning: '#F59E0B',      // Amber
+    dark: '#1F2937',         // Dark gray
+    light: '#F9FAFB',        // Light gray
+    white: '#FFFFFF',
   },
-
-  async textToSpeech(text, language, voiceType = 'female') {
-    const res = await fetch('http://localhost:8000/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, language, voice_type: voiceType })
-    });
-    return res.blob();
+  
+  // Gradients
+  gradients: {
+    primary: 'bg-gradient-to-r from-blue-600 to-purple-600',
+    secondary: 'bg-gradient-to-r from-emerald-500 to-teal-500',
+    gold: 'bg-gradient-to-r from-amber-500 to-orange-500',
   },
-
-  async uploadPDF(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch('http://localhost:8000/upload-pdf', {
-      method: 'POST',
-      body: formData
-    });
-    return res.json();
-  },
-
-  async askPDF(question, pdfId) {
-    const res = await fetch('http://localhost:8000/ask-pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, pdf_id: pdfId })
-    });
-    return res.json();
-  },
-
-  async getNews(company) {
-    const res = await fetch(`http://localhost:8000/news/${company}`);
-    return res.json();
-  },
-
-  async getStock(symbol) {
-    const res = await fetch(`http://localhost:8000/stock/${symbol}`);
-    return res.json();
-  },
-
-  async getLanguages() {
-    const res = await fetch('http://localhost:8000/languages');
-    return res.json();
+  
+  // Animations
+  animations: {
+    pulse: 'animate-pulse',
+    bounce: 'animate-bounce',
+    spin: 'animate-spin',
+    fadeIn: 'animate-fade-in',
   }
 };
 
-// Voice Input Component
-function VoiceInput({ onText, language }) {
-  const [isListening, setIsListening] = useState(false);
-  const [supported, setSupported] = useState(true);
+// ==================== ANIMATION KEYFRAMES ====================
+
+// Add this to your index.html or create a CSS file
+const animationStyles = `
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+`;
+
+// Add to your index.html head
+const style = document.createElement('style');
+style.textContent = animationStyles;
+document.head.appendChild(style);
+
+// ==================== API SERVICE ====================
+
+const API = {
+  async chat(query, language) {
+    try {
+      const res = await fetch('http://localhost:8000/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, language })
+      });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      return await res.json();
+    } catch (error) {
+      console.error('API Error:', error);
+      return { response: '⚠️ Cannot connect to server. Is backend running?' };
+    }
+  },
+
+  async textToSpeech(text, language) {
+    try {
+      const res = await fetch('http://localhost:8000/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, language, voice_type: 'female' })
+      });
+      if (!res.ok) throw new Error('TTS failed');
+      return await res.blob();
+    } catch (error) {
+      console.error('TTS Error:', error);
+      return null;
+    }
+  }
+};
+
+// ==================== LANGUAGE DATA ====================
+
+const INDIAN_LANGUAGES = [
+  { code: 'en', name: 'English', native: 'English', flag: '🇬🇧' },
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'bn', name: 'Bengali', native: 'বাংলা', flag: '🇮🇳' },
+  { code: 'te', name: 'Telugu', native: 'తెలుగు', flag: '🇮🇳' },
+  { code: 'ta', name: 'Tamil', native: 'தமிழ்', flag: '🇮🇳' },
+  { code: 'mr', name: 'Marathi', native: 'मराठी', flag: '🇮🇳' },
+  { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', flag: '🇮🇳' },
+  { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', flag: '🇮🇳' },
+  { code: 'ml', name: 'Malayalam', native: 'മലയാളം', flag: '🇮🇳' },
+  { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', flag: '🇮🇳' },
+  { code: 'or', name: 'Odia', native: 'ଓଡ଼ିଆ', flag: '🇮🇳' },
+  { code: 'as', name: 'Assamese', native: 'অসমীয়া', flag: '🇮🇳' },
+];
+
+// ==================== CONNECTION STATUS ====================
+
+function ConnectionStatus() {
+  const [status, setStatus] = useState('checking');
 
   useEffect(() => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      setSupported(false);
-    }
+    const checkConnection = async () => {
+      try {
+        await fetch('http://localhost:8000/health', { timeout: 2000 });
+        setStatus('connected');
+      } catch {
+        setStatus('disconnected');
+      }
+    };
+    
+    checkConnection();
+    const interval = setInterval(checkConnection, 5000);
+    return () => clearInterval(interval);
   }, []);
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium shadow-lg ${
+      status === 'connected' ? 'bg-green-500 text-white' : 
+      status === 'checking' ? 'bg-yellow-500 text-white' : 'bg-red-500 text-white'
+    }`}>
+      <span className={`w-2 h-2 rounded-full ${
+        status === 'connected' ? 'bg-white animate-pulse' : 
+        status === 'checking' ? 'bg-white' : 'bg-white'
+      }`}></span>
+      {status === 'connected' ? 'Backend Online' : 
+       status === 'checking' ? 'Connecting...' : 'Backend Offline'}
+    </div>
+  );
+}
+
+// ==================== LANGUAGE SELECTOR ====================
+
+function LanguageSelector({ selected, onChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedLang = INDIAN_LANGUAGES.find(l => l.code === selected) || INDIAN_LANGUAGES[0];
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+      >
+        <span className="text-xl">{selectedLang.flag}</span>
+        <span className="font-medium">{selectedLang.native}</span>
+        <span className="text-xs text-gray-500">({selectedLang.name})</span>
+        <svg className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
+          <div className="absolute top-full left-0 mt-2 w-64 max-h-96 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-20 animate-fade-in">
+            {INDIAN_LANGUAGES.map(lang => (
+              <button
+                key={lang.code}
+                onClick={() => {
+                  onChange(lang.code);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
+                  selected === lang.code ? 'bg-blue-50 text-blue-600' : ''
+                }`}
+              >
+                <span className="text-xl">{lang.flag}</span>
+                <div className="text-left">
+                  <div className="font-medium">{lang.native}</div>
+                  <div className="text-xs text-gray-500">{lang.name}</div>
+                </div>
+                {selected === lang.code && (
+                  <svg className="w-5 h-5 ml-auto text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ==================== VOICE INPUT ====================
+
+function VoiceInput({ onText, language }) {
+  const [isListening, setIsListening] = useState(false);
+  const [supported] = useState(() => {
+    return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+  });
 
   const startListening = () => {
     if (!supported) {
-      alert('Voice recognition not supported in this browser. Try Chrome.');
+      alert('Voice recognition not supported in this browser');
       return;
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     
-    recognition.lang = language === 'en' ? 'en-IN' : language + '-IN';
+    recognition.lang = language === 'en' ? 'en-IN' : `${language}-IN`;
     recognition.continuous = false;
     recognition.interimResults = false;
 
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
-    recognition.onerror = (event) => {
-      console.error('Speech error:', event.error);
-      setIsListening(false);
-    };
+    recognition.onerror = () => setIsListening(false);
 
     recognition.onresult = (event) => {
       const text = event.results[0][0].transcript;
@@ -125,44 +241,49 @@ function VoiceInput({ onText, language }) {
     <button
       onClick={startListening}
       disabled={!supported}
-      className={`px-3 py-2 rounded-lg flex items-center gap-2 ${
+      className={`relative p-3 rounded-xl transition-all duration-200 ${
         isListening 
-          ? 'bg-red-500 text-white animate-pulse' 
-          : supported 
-            ? 'bg-green-600 text-white hover:bg-green-700'
-            : 'bg-gray-400 text-white cursor-not-allowed'
+          ? 'bg-red-500 text-white scale-110 shadow-lg' 
+          : supported
+            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-md hover:scale-105'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
       }`}
       title={supported ? `Speak in ${language}` : 'Not supported'}
     >
-      <span>{isListening ? '🎤 Listening...' : '🎤 Voice'}</span>
+      {isListening ? (
+        <>
+          <span className="absolute inset-0 rounded-xl bg-red-500 animate-ping opacity-75"></span>
+          <span className="relative">🎤</span>
+        </>
+      ) : '🎤'}
     </button>
   );
 }
 
-// Voice Output Component
-function VoiceOutput({ text, language, onPlay }) {
+// ==================== VOICE OUTPUT ====================
+
+function VoiceOutput({ text, language }) {
   const [playing, setPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState(null);
 
   const playAudio = async () => {
+    if (!text || playing) return;
+    
+    setPlaying(true);
     try {
-      setPlaying(true);
-      
-      // Get audio from backend
-      const audioBlob = await API.textToSpeech(text, language, 'female');
-      const url = URL.createObjectURL(audioBlob);
-      setAudioUrl(url);
-      
-      const audio = new Audio(url);
-      audio.onended = () => {
+      const audioBlob = await API.textToSpeech(text, language);
+      if (audioBlob) {
+        const url = URL.createObjectURL(audioBlob);
+        const audio = new Audio(url);
+        audio.onended = () => {
+          setPlaying(false);
+          URL.revokeObjectURL(url);
+        };
+        audio.play();
+      } else {
         setPlaying(false);
-        URL.revokeObjectURL(url);
-      };
-      audio.play();
-      
-      if (onPlay) onPlay();
+      }
     } catch (error) {
-      console.error('TTS error:', error);
+      console.error('Playback error:', error);
       setPlaying(false);
     }
   };
@@ -171,43 +292,92 @@ function VoiceOutput({ text, language, onPlay }) {
     <button
       onClick={playAudio}
       disabled={playing}
-      className={`ml-2 p-2 rounded-full ${
+      className={`p-2 rounded-lg transition-all ${
         playing 
-          ? 'bg-blue-100 text-blue-600' 
-          : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+          ? 'bg-blue-100 text-blue-600 animate-pulse' 
+          : 'hover:bg-gray-100 text-gray-600 hover:text-blue-600'
       }`}
       title="Listen"
     >
-      {playing ? '🔊 Playing...' : '🔊'}
+      {playing ? '🔊' : '🔈'}
     </button>
   );
 }
 
-// Language Selector
-function LanguageSelector({ selected, onChange }) {
+// ==================== CHAT MESSAGE ====================
+
+function ChatMessage({ message, language }) {
+  const isUser = message.sender === 'user';
+  
   return (
-    <div className="relative group">
-      <select
-        value={selected}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        {INDIAN_LANGUAGES.map(lang => (
-          <option key={lang.code} value={lang.code}>
-            {lang.native} - {lang.name}
-          </option>
-        ))}
-      </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-        ▼
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+      <div className={`flex max-w-[70%] ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end gap-2`}>
+        {!isUser && (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white text-sm shadow-md">
+            AI
+          </div>
+        )}
+        
+        <div className={`group relative ${isUser ? 'order-1' : 'order-2'}`}>
+          <div className={`px-4 py-3 rounded-2xl shadow-sm ${
+            isUser 
+              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-none' 
+              : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
+          }`}>
+            <p className="text-sm leading-relaxed">{message.text}</p>
+            
+            {!isUser && (
+              <div className="absolute -bottom-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <VoiceOutput text={message.text} language={language} />
+              </div>
+            )}
+          </div>
+          
+          <div className={`text-xs text-gray-500 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>
+            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+        
+        {isUser && (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-gray-600 to-gray-800 flex items-center justify-center text-white text-sm shadow-md">
+            You
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Chat Component
+// ==================== TYPING INDICATOR ====================
+
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start animate-fade-in">
+      <div className="flex items-end gap-2">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white text-sm shadow-md">
+          AI
+        </div>
+        <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm">
+          <div className="flex gap-1">
+            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== CHAT INTERFACE ====================
+
 function Chat() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([
+    { 
+      sender: 'bot', 
+      text: '👋 Namaste! I\'m your AI finance assistant. Ask me about stocks, companies, markets, or upload financial PDFs for analysis.' 
+    }
+  ]);
   const [input, setInput] = useState('');
   const [language, setLanguage] = useState('en');
   const [loading, setLoading] = useState(false);
@@ -215,25 +385,18 @@ function Chat() {
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userMsg = { text: input, sender: 'user', language };
+    const userMsg = { sender: 'user', text: input };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
-    try {
-      const data = await API.chat(input, language);
-      const botMsg = { 
-        text: data.response, 
-        sender: 'bot', 
-        language,
-        sentiment: data.sentiment 
-      };
-      setMessages(prev => [...prev, botMsg]);
-    } catch (error) {
-      console.error('Chat error:', error);
-    } finally {
-      setLoading(false);
-    }
+    const data = await API.chat(input, language);
+    
+    setMessages(prev => [...prev, { 
+      sender: 'bot', 
+      text: data.response || 'Sorry, I encountered an error.'
+    }]);
+    setLoading(false);
   };
 
   const handleVoiceInput = (text) => {
@@ -241,397 +404,230 @@ function Chat() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-120px)]">
-      <div className="bg-white p-4 border-b flex items-center gap-4">
-        <LanguageSelector selected={language} onChange={setLanguage} />
-        <VoiceInput onText={handleVoiceInput} language={language} />
+    <div className="flex-1 flex flex-col h-[calc(100vh-80px)] bg-gray-50">
+      {/* Chat Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold shadow-md">
+            AI
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-800">FinSight Assistant</h2>
+            <p className="text-xs text-gray-500">Powered by Gemini AI</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <LanguageSelector selected={language} onChange={setLanguage} />
+          <VoiceInput onText={handleVoiceInput} language={language} />
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[70%] group relative ${
-              msg.sender === 'user' 
-                ? 'bg-blue-600 text-white rounded-l-lg rounded-tr-lg' 
-                : 'bg-gray-200 text-gray-800 rounded-r-lg rounded-tl-lg'
-            } p-3`}>
-              <div className="flex items-start gap-2">
-                <span>{msg.text}</span>
-                {msg.sender === 'bot' && (
-                  <VoiceOutput text={msg.text} language={msg.language} />
-                )}
-              </div>
-              {msg.sentiment && (
-                <span className="absolute -top-2 -right-2 text-sm bg-white rounded-full px-2 shadow">
-                  {msg.sentiment === 'POSITIVE' ? '📈' : 
-                   msg.sentiment === 'NEGATIVE' ? '📉' : '📊'}
-                </span>
-              )}
-            </div>
-          </div>
+          <ChatMessage key={i} message={msg} language={language} />
         ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-200 p-3 rounded-lg">
-              <span className="animate-pulse">...</span>
-            </div>
-          </div>
-        )}
+        {loading && <TypingIndicator />}
       </div>
 
-      <div className="bg-white border-t p-4">
-        <div className="flex gap-2">
+      {/* Input Area */}
+      <div className="bg-white border-t border-gray-200 px-6 py-4">
+        <div className="flex gap-3 max-w-4xl mx-auto">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder={`Type your message in ${INDIAN_LANGUAGES.find(l => l.code === language)?.native}...`}
-            className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder={`Ask in ${INDIAN_LANGUAGES.find(l => l.code === language)?.native}...`}
+            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           />
           <button
             onClick={sendMessage}
             disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-md hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-medium flex items-center gap-2"
           >
-            Send
+            <span>Send</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
           </button>
         </div>
+        <p className="text-xs text-gray-400 text-center mt-2">
+          💡 Try: "What's Tesla stock price?" or "Summarize this PDF"
+        </p>
       </div>
     </div>
   );
 }
 
-// PDF Component
-function PDF() {
-  const [file, setFile] = useState(null);
-  const [pdfId, setPdfId] = useState(null);
-  const [question, setQuestion] = useState('');
-  const [answers, setAnswers] = useState([]);
-  const [summary, setSummary] = useState('');
-  const [suggestedQuestions, setSuggestedQuestions] = useState([]);
-  const [uploading, setUploading] = useState(false);
+// ==================== PDF UPLOAD COMPONENT ====================
 
-  const uploadFile = async () => {
+function PDFUpload() {
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+
+  const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
     try {
-      const data = await API.uploadPDF(file);
-      setPdfId(data.pdf_id);
-      setSummary(data.summary);
-      setSuggestedQuestions(data.suggested_questions || []);
+      const res = await fetch('http://localhost:8000/upload-pdf', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      setUploadResult(data);
     } catch (error) {
       console.error('Upload error:', error);
+      alert('Upload failed. Is backend running?');
     } finally {
       setUploading(false);
     }
   };
 
-  const askQuestion = async () => {
-    if (!question || !pdfId) return;
-    try {
-      const data = await API.askPDF(question, pdfId);
-      setAnswers(prev => [...prev, { q: question, a: data.answer }]);
-      setQuestion('');
-    } catch (error) {
-      console.error('Ask error:', error);
-    }
-  };
-
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">📄 Upload Financial Document</h2>
-      
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white text-2xl shadow-md">
+            📄
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Upload PDF</h2>
+            <p className="text-gray-500">Upload financial documents for AI analysis</p>
+          </div>
+        </div>
+
+        <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
           <input
             type="file"
             accept=".pdf"
             onChange={(e) => setFile(e.target.files[0])}
             className="hidden"
-            id="pdf-upload"
+            id="pdf-input"
           />
           <label
-            htmlFor="pdf-upload"
-            className="cursor-pointer inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+            htmlFor="pdf-input"
+            className="cursor-pointer flex flex-col items-center"
           >
-            📤 Choose PDF
+            <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+              <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <p className="text-gray-700 font-medium mb-1">
+              {file ? file.name : 'Click to select a PDF'}
+            </p>
+            <p className="text-sm text-gray-500">
+              {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Max size: 10MB'}
+            </p>
           </label>
-          {file && (
-            <div className="mt-4">
-              <p className="text-sm text-gray-600">Selected: {file.name}</p>
-              <button
-                onClick={uploadFile}
-                disabled={uploading}
-                className="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
-              >
-                {uploading ? 'Uploading...' : 'Upload'}
-              </button>
-            </div>
-          )}
         </div>
-      </div>
 
-      {summary && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h3 className="font-bold mb-2">📝 Summary</h3>
-          <p className="text-gray-700 whitespace-pre-line">{summary}</p>
-        </div>
-      )}
-
-      {suggestedQuestions.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h3 className="font-bold mb-2">💡 Suggested Questions</h3>
-          <div className="flex flex-wrap gap-2">
-            {suggestedQuestions.map((q, i) => (
-              <button
-                key={i}
-                onClick={() => setQuestion(q)}
-                className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-300"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="font-bold mb-4">❓ Ask about your document</h3>
-        <div className="flex gap-2 mb-4">
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && askQuestion()}
-            placeholder="Ask a question about the PDF..."
-            className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={!pdfId}
-          />
+        {file && (
           <button
-            onClick={askQuestion}
-            disabled={!pdfId}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            onClick={handleUpload}
+            disabled={uploading}
+            className="w-full mt-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-md transition-all disabled:opacity-50 font-medium"
           >
-            Ask
+            {uploading ? 'Uploading...' : 'Upload PDF'}
           </button>
-        </div>
+        )}
 
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          {answers.map((ans, i) => (
-            <div key={i} className="border-b pb-2">
-              <p className="font-semibold text-blue-600">Q: {ans.q}</p>
-              <p className="text-gray-700 mt-1">A: {ans.a}</p>
-            </div>
-          ))}
-        </div>
+        {uploadResult && (
+          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-xl animate-fade-in">
+            <p className="text-green-700 font-medium mb-2">✓ Upload successful!</p>
+            <p className="text-sm text-gray-600">{uploadResult.summary}</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Stock Component
-function Stock() {
-  const [symbol, setSymbol] = useState('');
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
+// ==================== MAIN APP ====================
 
-  const getStock = async () => {
-    if (!symbol) return;
-    setLoading(true);
-    try {
-      const data = await API.getStock(symbol);
-      setData(data);
-    } catch (error) {
-      console.error('Stock error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">📈 Stock Information</h2>
-      
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-            onKeyPress={(e) => e.key === 'Enter' && getStock()}
-            placeholder="Enter symbol (e.g., RELIANCE, TCS, AAPL)"
-            className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={getStock}
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-          >
-            {loading ? 'Loading...' : 'Get'}
-          </button>
-        </div>
-      </div>
-
-      {data && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-bold mb-4">{data.symbol}</h3>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="text-sm text-gray-600">Price</p>
-              <p className="text-2xl font-bold">₹{data.price}</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="text-sm text-gray-600">Change</p>
-              <p className={`text-2xl font-bold ${data.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {data.change > 0 ? '+' : ''}{data.change} ({data.change_percent}%)
-              </p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="text-sm text-gray-600">Volume</p>
-              <p className="text-xl">{data.volume.toLocaleString()}</p>
-            </div>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-gray-700">{data.insight}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// News Component
-function News() {
-  const [company, setCompany] = useState('');
-  const [news, setNews] = useState([]);
-  const [overallSentiment, setOverallSentiment] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const getNews = async () => {
-    if (!company) return;
-    setLoading(true);
-    try {
-      const data = await API.getNews(company);
-      setNews(data.news || []);
-      setOverallSentiment(data.overall_sentiment);
-    } catch (error) {
-      console.error('News error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">📰 Company News</h2>
-      
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && getNews()}
-            placeholder="Enter company name (e.g., Tata, Reliance)"
-            className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={getNews}
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-          >
-            {loading ? 'Searching...' : 'Search'}
-          </button>
-        </div>
-      </div>
-
-      {overallSentiment && (
-        <div className={`mb-4 p-3 rounded-lg ${
-          overallSentiment === 'POSITIVE' ? 'bg-green-100 text-green-800' :
-          overallSentiment === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
-          Overall Sentiment: {overallSentiment} {
-            overallSentiment === 'POSITIVE' ? '📈' :
-            overallSentiment === 'NEGATIVE' ? '📉' : '📊'
-          }
-        </div>
-      )}
-
-      <div className="space-y-4">
-        {news.map((item, i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-4">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-bold text-lg">{item.title}</h3>
-              <span className={`px-2 py-1 rounded text-sm ${
-                item.sentiment === 'POSITIVE' ? 'bg-green-100 text-green-800' :
-                item.sentiment === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {item.sentiment}
-              </span>
-            </div>
-            <p className="text-gray-600 mb-2">{item.summary}</p>
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>{item.source}</span>
-              <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                Read more →
-              </a>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Main App
 function App() {
   const [activeTab, setActiveTab] = useState('chat');
 
   const tabs = [
-    { id: 'chat', name: '💬 Chat', icon: '💬' },
-    { id: 'pdf', name: '📄 PDF', icon: '📄' },
-    { id: 'stock', name: '📈 Stocks', icon: '📈' },
-    { id: 'news', name: '📰 News', icon: '📰' }
+    { id: 'chat', icon: '💬', label: 'Chat', gradient: 'from-blue-600 to-purple-600' },
+    { id: 'pdf', icon: '📄', label: 'PDF', gradient: 'from-emerald-600 to-teal-600' },
+    { id: 'stock', icon: '📈', label: 'Stocks', gradient: 'from-amber-600 to-orange-600' },
+    { id: 'news', icon: '📰', label: 'News', gradient: 'from-pink-600 to-rose-600' },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 shadow-lg">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">🇮🇳 Finsight AI - भारत के लिए वित्त चैटबॉट</h1>
-          <div className="text-sm bg-blue-700 px-3 py-1 rounded-full">
-            22 भारतीय भाषाएँ | 22 Indian Languages
+    <div className="min-h-screen bg-gray-50">
+      <ConnectionStatus />
+      
+      {/* Header */}
+      <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl shadow-xl animate-float">
+                🇮🇳
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">FinSight AI</h1>
+                <p className="text-blue-100 text-sm mt-1">
+                  Multilingual Finance Assistant • 22 Indian Languages
+                </p>
+              </div>
+            </div>
+            <div className="hidden md:block px-4 py-2 bg-white/20 rounded-xl backdrop-blur">
+              <span className="text-sm">🌟 Powered by Gemini AI</span>
+            </div>
           </div>
         </div>
       </header>
 
-      <nav className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto flex">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.name}</span>
-            </button>
-          ))}
+      {/* Navigation Tabs */}
+      <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex gap-2">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative px-6 py-4 font-medium transition-all ${
+                  activeTab === tab.id
+                    ? `text-transparent bg-clip-text bg-gradient-to-r ${tab.gradient}`
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </span>
+                {activeTab === tab.id && (
+                  <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r ${tab.gradient}`}></div>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </nav>
 
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto">
         {activeTab === 'chat' && <Chat />}
-        {activeTab === 'pdf' && <PDF />}
-        {activeTab === 'stock' && <Stock />}
-        {activeTab === 'news' && <News />}
+        {activeTab === 'pdf' && <PDFUpload />}
+        {activeTab === 'stock' && (
+          <div className="p-6 text-center text-gray-500">
+            Stock feature coming soon...
+          </div>
+        )}
+        {activeTab === 'news' && (
+          <div className="p-6 text-center text-gray-500">
+            News feature coming soon...
+          </div>
+        )}
       </main>
     </div>
   );

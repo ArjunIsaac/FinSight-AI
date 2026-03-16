@@ -43,3 +43,5 @@ cd backend
 pip install -r requirements.txt
 # Add your API keys to .env
 python main.py
+# Dev mode with hot-reload (recommended):
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
