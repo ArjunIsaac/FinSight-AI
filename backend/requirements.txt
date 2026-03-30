@@ -1,8 +1,39 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-google-generativeai==0.3.0
-python-dotenv==1.0.0
+# ── Finsight AI — Python dependencies ─────────────────────────────────────────
+# Install with: pip install -r requirements.txt
+#
+# Prerequisites (install separately if not present):
+#   pip install --upgrade pip
+
+# ── Web framework ──────────────────────────────────────────────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9        # Required for UploadFile / File() in FastAPI
+
+# ── Database ───────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.30
+pymysql==1.1.1                  # MySQL driver used by SQLAlchemy
+
+# ── AI / LLM ───────────────────────────────────────────────────────────────────
+google-generativeai==0.7.2      # Gemini SDK
+
+# ── TTS ────────────────────────────────────────────────────────────────────────
+edge-tts==6.1.12                # Microsoft Edge neural TTS (no API key needed)
+
+# ── PDF parsing ────────────────────────────────────────────────────────────────
 PyPDF2==3.0.1
-requests==2.31.0
-yfinance==0.2.33
-python-multipart==0.0.6
+
+# ── Finance data ───────────────────────────────────────────────────────────────
+yfinance==0.2.40
+
+# ── HTTP client ────────────────────────────────────────────────────────────────
+requests==2.32.3
+httpx==0.27.0                   # Used internally by FastAPI test client
+
+# ── Env & config ───────────────────────────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── Markdown (optional helper, not imported in main.py but useful in scripts) ──
+markdown==3.6
+
+# ── Utilities ──────────────────────────────────────────────────────────────────
+pydantic==2.7.1                 # Bundled with FastAPI but pinned for stability

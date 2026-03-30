@@ -1,0 +1,22 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dotenv>=0.9.9",
+    "edge-tts>=7.2.8",
+    "fastapi==0.104.1",
+    "google-generativeai==0.3.0",
+    "markdown>=3.10.2",
+    "nltk>=3.9.4",
+    "pymysql>=1.1.2",
+    "pypdf2==3.0.1",
+    "python-dotenv==1.0.0",
+    "python-multipart==0.0.6",
+    "requests==2.31.0",
+    "sqlalchemy>=2.0.48",
+    "uvicorn==0.24.0",
+    "yfinance==0.2.33",
+]
