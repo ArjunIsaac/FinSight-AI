@@ -198,6 +198,18 @@ const api = {
     if (!r.ok) throw new Error(`TTS API ${r.status}`);
     return r.blob();
   },
+
+  async getHistory() {
+    const r = await fetch(`${BASE}/history`);
+    if (!r.ok) throw new Error(`History API ${r.status}`);
+    return r.json();
+  },
+
+  async clearHistory() {
+    const r = await fetch(`${BASE}/clear-history`, { method: 'DELETE' });
+    if (!r.ok) throw new Error(`Clear API ${r.status}`);
+    return r.json();
+  }
 };
 
 // ── Tiny reusable primitives ──────────────────────────────────────────────────
@@ -222,7 +234,7 @@ function SentimentBadge({ value }) {
   );
 }
 
-function Btn({ children, onClick, disabled, variant = 'primary', style: s, small }) {
+function Btn({ children, onClick, disabled, variant = 'primary', style: s, small, danger }) {
   const base = {
     display: 'inline-flex', alignItems: 'center', gap: 6, cursor: disabled ? 'not-allowed' : 'pointer',
     border: 'none', borderRadius: 'var(--radius)', fontFamily: 'var(--font-sans)', fontWeight: 500,
@@ -232,11 +244,13 @@ function Btn({ children, onClick, disabled, variant = 'primary', style: s, small
   const variants = {
     primary:  { background: 'var(--ink)',  color: '#fff' },
     gold:     { background: 'var(--gold)', color: '#fff' },
-    ghost:    { background: 'transparent', color: 'var(--ink-2)', border: '1px solid var(--paper-3)' },
+    ghost:    { background: 'transparent', color: danger ? 'var(--red)' : 'var(--ink-2)', border: '1px solid var(--paper-3)' },
     danger:   { background: 'var(--red-light)', color: 'var(--red)' },
   };
+  const activeVariant = danger && variant === 'ghost' ? variants.ghost : variants[variant];
+
   return (
-    <button onClick={onClick} disabled={disabled} style={{ ...base, ...variants[variant], ...s }}>
+    <button onClick={onClick} disabled={disabled} style={{ ...base, ...activeVariant, ...s }}>
       {children}
     </button>
   );
@@ -249,7 +263,6 @@ function ConnectionStatus() {
 
   useEffect(() => {
     const check = async () => {
-      // BUG FIX: fetch doesn't accept a timeout option — use AbortController
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 2500);
       try {
@@ -512,9 +525,11 @@ function TypingDots() {
 
 // ── Chat Tab ──────────────────────────────────────────────────────────────────
 
-function ChatTab() {
+function ChatTab({ isActive }) {
+  // Fresh start with a greeting
   const [messages, setMessages] = useState([{
-    role: 'bot', text: 'Namaste. I\'m your finance assistant — ask me about stocks, markets, companies, or upload a financial PDF for analysis.',
+    role: 'bot', 
+    text: "Namaste. I'm your finance assistant — ask me about stocks, markets, companies, or upload a financial PDF for analysis.",
     timestamp: new Date().toISOString(),
   }]);
   const [input, setInput]       = useState('');
@@ -522,20 +537,52 @@ function ChatTab() {
   const [loading, setLoading]   = useState(false);
   const bottomRef               = useRef();
 
-  // BUG FIX: auto-scroll to latest message
+  // Manual history loader with chronological sorting to fix User/AI mismatch
+  const loadHistory = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getHistory();
+      if (data.history && data.history.length > 0) {
+        const formatted = data.history
+          .map(m => ({
+            role: m.role === 'model' ? 'bot' : 'user',
+            text: m.content,
+            timestamp: m.timestamp,
+            sentiment: m.sentiment
+          }))
+          // Chronological sort: oldest first
+          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        setMessages(formatted);
+      } else {
+        alert("No history found.");
+      }
+    } catch (e) {
+      alert("Could not load history: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+    if (isActive) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, loading, isActive]);
 
   const send = async () => {
     const q = input.trim();
     if (!q || loading) return;
+    
+    // Add user message immediately
     const ts = new Date().toISOString();
     setMessages(m => [...m, { role: 'user', text: q, timestamp: ts }]);
     setInput('');
     setLoading(true);
+
     try {
       const data = await api.chat(q, lang);
+      // Append bot response after the user message
       setMessages(m => [...m, {
         role: 'bot',
         text: data.response,
@@ -560,20 +607,44 @@ function ChatTab() {
           <div style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--ink-2)' }}>Finance Assistant</div>
           <div style={{ fontSize: '.7rem', color: 'var(--ink-4)' }}>Finance-only · Powered by Gemini</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {/* History Button */}
+          <Btn variant="ghost" small onClick={loadHistory} disabled={loading}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            History
+          </Btn>
+
+          {/* Clear Button */}
+          <Btn variant="ghost" danger small onClick={async () => {
+            if(window.confirm("Delete all chat history?")) {
+              try {
+                await api.clearHistory();
+                setMessages([{ role: 'bot', text: "History cleared. Fresh session started.", timestamp: new Date().toISOString() }]);
+              } catch (e) {
+                alert("Failed to clear: " + e.message);
+              }
+            }
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Clear
+          </Btn>
+
           <LanguageSelector value={lang} onChange={setLang} />
           <VoiceInput onText={setInput} language={lang} disabled={loading} />
         </div>
       </div>
 
-      {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
         {messages.map((msg, i) => <ChatMsg key={i} msg={msg} language={lang} />)}
         {loading && <TypingDots />}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input bar */}
       <div style={{ borderTop: '1px solid var(--paper-3)', background: '#fff', padding: '14px 20px', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
@@ -610,7 +681,7 @@ function ChatTab() {
 function PDFTab() {
   const [file, setFile]         = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult]     = useState(null);   // { pdf_id, filename, summary, suggested_questions }
+  const [result, setResult]     = useState(null);   
   const [question, setQuestion] = useState('');
   const [answer, setAnswer]     = useState('');
   const [asking, setAsking]     = useState(false);
@@ -644,8 +715,6 @@ function PDFTab() {
 
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 20px', overflowY: 'auto', height: '100%' }}>
-
-      {/* Upload card */}
       <div style={{ background: '#fff', border: '1px solid var(--paper-3)', borderRadius: 'var(--radius-lg)', padding: '28px', marginBottom: 20 }}>
         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', margin: '0 0 4px' }}>Upload Financial Document</h2>
         <p style={{ fontSize: '.8rem', color: 'var(--ink-3)', margin: '0 0 20px' }}>
@@ -683,7 +752,6 @@ function PDFTab() {
         )}
       </div>
 
-      {/* Summary card */}
       {result && (
         <div className="fade-up" style={{ background: '#fff', border: '1px solid var(--paper-3)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -719,7 +787,6 @@ function PDFTab() {
         </div>
       )}
 
-      {/* Ask card */}
       {result && (
         <div className="fade-up" style={{ background: '#fff', border: '1px solid var(--paper-3)', borderRadius: 'var(--radius-lg)', padding: '24px' }}>
           <div style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: 10 }}>Ask about this document</div>
@@ -953,12 +1020,10 @@ export default function App() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--paper)' }}>
       <ConnectionStatus />
 
-      {/* ── Sidebar ── */}
       <aside style={{
         width: 220, flexShrink: 0, background: 'var(--ink)', color: '#fff',
         display: 'flex', flexDirection: 'column',
       }}>
-        {/* Logo */}
         <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid rgba(255,255,255,.1)' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', lineHeight: 1.1, color: 'var(--gold)' }}>
             Fin<em>Sight</em>
@@ -968,7 +1033,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Nav items */}
         <nav style={{ flex: 1, padding: '12px 10px' }}>
           {TABS.map(t => {
             const active = tab === t.id;
@@ -991,17 +1055,14 @@ export default function App() {
           })}
         </nav>
 
-        {/* Footer */}
         <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,.08)', fontSize: '.65rem', color: 'rgba(255,255,255,.25)', lineHeight: 1.6 }}>
           Finance-only queries<br />
           22 Indian languages<br />
-          MySQL · Gemini 2.5
+          MySQL · Gemini 2.0
         </div>
       </aside>
 
-      {/* ── Main content ── */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Top bar */}
         <div style={{
           padding: '0 24px', height: 52, flexShrink: 0,
           borderBottom: '1px solid var(--paper-3)', background: '#fff',
@@ -1015,12 +1076,19 @@ export default function App() {
           </div>
         </div>
 
-        {/* Tab content */}
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          {tab === 'chat'  && <ChatTab />}
-          {tab === 'pdf'   && <PDFTab />}
-          {tab === 'stock' && <StockTab />}
-          {tab === 'news'  && <NewsTab />}
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ display: tab === 'chat' ? 'block' : 'none', height: '100%' }}>
+            <ChatTab isActive={tab === 'chat'} />
+          </div>
+          <div style={{ display: tab === 'pdf' ? 'block' : 'none', height: '100%' }}>
+            <PDFTab />
+          </div>
+          <div style={{ display: tab === 'stock' ? 'block' : 'none', height: '100%' }}>
+            <StockTab />
+          </div>
+          <div style={{ display: tab === 'news' ? 'block' : 'none', height: '100%' }}>
+            <NewsTab />
+          </div>
         </div>
       </main>
     </div>

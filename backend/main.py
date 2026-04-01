@@ -138,11 +138,12 @@ def clean_markdown_for_tts(text: str) -> str:
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+#send health check response
 @app.get("/health")
 async def health_check():
     return {"status": "online"}
 
-
+# chat route with Gemini and local sentiment analysis
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest, db: Session = Depends(get_db)):
     try:
@@ -181,6 +182,7 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# pdf upload
 @app.post("/upload-pdf")
 async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
@@ -210,7 +212,7 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
         logger.error(f"PDF upload error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# ask question about pdf content
 @app.post("/ask-pdf")
 async def ask_pdf(request: QuestionRequest, db: Session = Depends(get_db)):
     try:
@@ -226,7 +228,7 @@ async def ask_pdf(request: QuestionRequest, db: Session = Depends(get_db)):
         logger.error(f"PDF Q&A error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# news route with relevance and local sentiment
 @app.get("/news/{company}")
 async def get_news(company: str):
     try:
